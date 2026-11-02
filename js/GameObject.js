@@ -12,3 +12,15 @@ class GameObject {
         }
     }
 }
+
+class DynamicObject extends GameObject {
+    constructor (x,y,width,height,image){
+        super(x,y,width,height,image)
+    }
+}
+
+class StaticObject extends GameObject{
+    constructor (x,y,width,height,image){
+        super(x,y,width,height,image)
+    }
+}
