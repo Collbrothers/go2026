@@ -2,25 +2,22 @@
  * @abstract
  */
 class GameObject {
-    x;
-    y;
+    coordinate;
     image;
 
-    constructor({x, y, width, height} = {}) {
-        if (new.target === GameObject) {
-            console.error("Inheritance of an abstract class")
-        }
+    constructor({coordinate, width, height} = {}) {
+        if (new.target === GameObject) throw new Error("GameObject is abstract");
+        this.coordinate = coordinate;
+        this.width = width;
+        this.height = height;
     }
-}
 
-class DynamicObject extends GameObject {
-    constructor (x,y,width,height,image){
-        super(x,y,width,height,image)
+    loadImage(imageSource) {
+        this.image = new Image();
+        this.image.src = imageSource;
     }
-}
 
-class StaticObject extends GameObject{
-    constructor (x,y,width,height,image){
-        super(x,y,width,height,image)
-    }
+    update() {}
+
+    draw() {}
 }
