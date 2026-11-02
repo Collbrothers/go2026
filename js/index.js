@@ -1,9 +1,20 @@
 const canvas = document.getElementById("canvas");
-const context = canvas.getContext("2d");
+const ctx = canvas.getContext("2d");
+const view = document.createElement("canvas");
+const vctx = view.getContext("2d");
 
-const CANVAS_HEIGHT = 720;
-const CANVAS_WIDTH = 1280;
+const VIEW_W = 640;
+const VIEW_H = 360;
+const SCALE = 2;
 const DEBUG = true;
+const state = {};
 
-if(DEBUG) console.log("Starting with debug on")
-new Game(CANVAS_WIDTH, CANVAS_HEIGHT).start();
+canvas.width = VIEW_W * SCALE;
+canvas.height = VIEW_H * SCALE;
+view.width = VIEW_W;
+view.height = VIEW_H;
+
+ctx.imageSmoothingEnabled = false;
+vctx.imageSmoothingEnabled = false;
+
+new Game().start();

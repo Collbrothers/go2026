@@ -2,13 +2,22 @@
  * @abstract
  */
 class GameObject {
-    x;
-    y;
+    coordinate;
     image;
 
-    constructor({x, y, width, height} = {}) {
-        if (new.target === GameObject) {
-            console.error("Inheritance of an abstract class")
-        }
+    constructor({coordinate, width, height} = {}) {
+        if (new.target === GameObject) throw new Error("GameObject is abstract");
+        this.coordinate = coordinate;
+        this.width = width;
+        this.height = height;
     }
+
+    loadImage(imageSource) {
+        this.image = new Image();
+        this.image.src = imageSource;
+    }
+
+    update() {}
+
+    draw() {}
 }
