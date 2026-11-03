@@ -10,6 +10,13 @@ class GameObject {
         this.coordinate = coordinate;
         this.width = width;
         this.height = height;
+        this.active = true;
+    }
+
+    collidesWith(obj) {
+        const dx = obj.coordinate.x - this.coordinate.x;
+        const dy = obj.coordinate.y - this.coordinate.y;
+        return Math.hypot(dx, dy) < (this.width + obj.width) / 2;
     }
 
     loadImage(imageSource) {
