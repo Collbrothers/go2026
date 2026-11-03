@@ -157,12 +157,23 @@ class Game {
     drawVisionBubble() {
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
-        const r = this.player.visibleRadius;
+        const base = this.player.baseRadius;
+        const min = 50;
+
+        if (this.player.gas < 20) {
+            const t = this.player.gas / 20;
+            this.player.visibleRadius = min + (base - min) * Math.pow(t, 2);
+        } else {
+            this.player.visibleRadius = base;
+        }
+
+        let r = this.player.visibleRadius;
+
 
         // Dark outside the bubble
         vctx.save();
         if (DEBUG) vctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        else vctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        else vctx.fillStyle = "rgba(0, 0, 0, 0.7)";
         vctx.beginPath();
         vctx.rect(0, 0, VIEW_W, VIEW_H);
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
