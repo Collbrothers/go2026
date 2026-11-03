@@ -85,8 +85,11 @@ class Game {
 
             // continue if 150px close to the start
             if (Math.hypot(x, y) < 150) continue;
-
-            this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            if (Math.random() < 0.5) {
+                this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            } else {
+                this.loot.push(new Wood({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            }
         }
     }
 
@@ -142,6 +145,9 @@ class Game {
             if (!loot.active) continue;
 
             if (loot instanceof Loot && this.player.collidesWith(loot)) {
+                this.player.heal(Math.floor(Math.random() * 20) + 10);
+                loot.active = false;
+            } else if (loot instanceof Wood && this.player.collidesWith(loot)) {
                 this.player.fuel(15);
                 loot.active = false;
             }
