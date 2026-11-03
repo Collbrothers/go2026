@@ -1,7 +1,6 @@
 class Loot extends GameObject {
     constructor(opts) {
         super(opts);
-        this.collected = false;
     }
 
     draw(ctx) {
