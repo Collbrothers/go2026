@@ -20,7 +20,7 @@ class Player extends DynamicObject {
                 if (this.lanternOn) {
                     this.lanternOn = false;
                     this.lanternDateOff = Date.now();
-                } else {
+                } else if (this.gas > 0) {
                     this.lanternOn = true;
                 }
             }
@@ -50,7 +50,11 @@ class Player extends DynamicObject {
 
     calculateAndTakeDamage() {
         if (this.lanternOn) {
-            this.gas -= 1;
+            this.gas = Math.max(this.gas - 1, 0);
+            if (this.gas <= 0) {
+                this.lanternOn = false;
+                this.lanternDateOff = Date.now();
+            }
             this.psyche = Math.min(this.psyche + 1, 100);
         } else if (this.psyche < 50) {
             this.health -= 1;
@@ -58,7 +62,7 @@ class Player extends DynamicObject {
     }
 
     drawLantern() {
-        if (!this.lanternOn) return;
+        if (!this.lanternOn || this.gas <= 0) return;
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
         const r = this.visibleRadius;
