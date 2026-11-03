@@ -8,6 +8,8 @@ class Game {
             maxSpeed: 120,
         });
         this.objects = [this.player];
+        this.loot = [];
+        this.spawnLoot(50)
         this.ui = new UI()
             .add(
                 new Bar({
@@ -17,6 +19,19 @@ class Game {
                     width: 100,
                     height: 8,
                     getValue: () => this.player.health,
+                    color: "#078723",
+                    max: 100
+                })
+            )
+            .add(
+                new Bar({
+                    anchor: "topright",
+                    x: 8,
+                    y: 32,
+                    width: 100,
+                    height: 8,
+                    getValue: () => this.player.psyche,
+                    color: "#743485",
                     max: 100
                 })
             )
@@ -24,18 +39,55 @@ class Game {
                 new Label({
                     anchor: "topright",
                     x: 8,
-                    y: 32,
+                    y: 56,
+                    width: 100,
+                    getText: () => `H${this.player.health}, G${this.player.gas}, P${this.player.psyche}`,
+                    debugOnly: true
+                })
+            )
+            .add(
+                new Label({
+                    anchor: "topright",
+                    x: 8,
+                    y: 80,
                     width: 100,
                     getText: () => `${Math.round(this.player.coordinate.x)}, ${Math.round(this.player.coordinate.y)}`,
                     debugOnly: true
                 })
             )
+            .add(
+                new Bar({
+                    anchor: "topleft",
+                    x: 8,
+                    y: 8,
+                    width: 100,
+                    height: 8,
+                    getValue: () => this.player.gas,
+                    color: "#E37C07",
+                    max: 100
+                })
+            )
         this.last = 0;
+        this.lastHealthTick = Date.now();
     }
 
     start() {
         this.initListeners();
         requestAnimationFrame((t) => this.gameloop(t));
+    }
+
+    spawnLoot(count) {
+        this.loot = [];
+        const half = WORLD_SIZE / 2;
+        while (this.loot.length < count) {
+            const x = (Math.random() - 0.5) * WORLD_SIZE;
+            const y = (Math.random() - 0.5) * WORLD_SIZE;
+
+            // continue if 150px close to the start
+            if (Math.hypot(x, y) < 150) continue;
+
+            this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+        }
     }
 
     initListeners() {
@@ -48,26 +100,52 @@ class Game {
         const dt = Math.min((now - this.last) / 1000, 0.1);
         this.last = now;
 
-        for (const obj of this.objects) obj.update(dt);
+        this.checkCollision();
+
+        for (const obj of this.objects) {
+            obj.update(dt);
+        }
+
+        for (const loot of this.loot) {
+            if (!loot.active) this.loot.splice(this.objects.indexOf(loot), 1);
+        }
 
         vctx.fillStyle = "#2a6fb0";
         vctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
+        const p = this.player.coordinate;
         vctx.save();
-        vctx.translate(
-            VIEW_W / 2 - Math.round(this.player.coordinate.x),
-            VIEW_H / 2 - Math.round(this.player.coordinate.y)
-        );
+        vctx.translate(VIEW_W / 2 - Math.round(p.x), VIEW_H / 2 - Math.round(p.y));
+
         if (DEBUG) this.drawDebugGrid();
+
+        for (const l of this.loot) {
+            if (Math.abs(l.coordinate.x - p.x) > VIEW_W / 2 + 32) continue;
+            if (Math.abs(l.coordinate.y - p.y) > VIEW_H / 2 + 32) continue;
+            l.draw(vctx);
+        }
         for (const o of this.objects) o.draw(vctx);
+
         vctx.restore();
+
         this.drawVisionBubble();
-        this.ui.draw()
-        ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
+        this.player.drawLantern();
+        this.ui.draw(vctx);
 
         ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
 
         requestAnimationFrame((t) => this.gameloop(t));
+    }
+
+    checkCollision() {
+        for (const loot of this.loot) {
+            if (!loot.active) continue;
+
+            if (loot instanceof Loot && this.player.collidesWith(loot)) {
+                this.player.fuel(15);
+                loot.active = false;
+            }
+        }
     }
 
     drawVisionBubble() {
@@ -83,18 +161,6 @@ class Game {
         vctx.rect(0, 0, VIEW_W, VIEW_H);
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
         vctx.fill("evenodd"); // holy claude code review find
-        vctx.restore();
-
-        // Yellow/brown ish tint inside the bubble
-        const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
-        g.addColorStop(1, "rgba(255, 190, 80, 0)");
-
-        vctx.save();
-        vctx.fillStyle = g;
-        vctx.beginPath();
-        vctx.arc(cx, cy, r, 0, Math.PI * 2);
-        vctx.fill();
         vctx.restore();
     }
 

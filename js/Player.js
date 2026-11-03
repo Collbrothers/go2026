@@ -2,10 +2,30 @@ class Player extends DynamicObject {
     constructor(opts = {}) {
         super(opts);
         this.visibleRadius = 150;
-        this.health = 100; // not implemented hehe
+        this.health = 100;
+        this.gas = 100;
+        this.psyche = 100;
         this.turnRate = 2;
         this.sprite = new Image();
         this.sprite.src = "boat.png";
+        this.tickDate = Date.now();
+        this.lanternOn = true;
+        this.times = {
+            lanternMaxSeconds: 30,
+            psycheMaxSeconds: 45,
+        }
+
+        document.addEventListener("keydown", e => {
+            if (e.code === "KeyF") {
+                if (this.lanternOn) {
+                    this.lanternOn = false;
+                    this.lanternDateOff = Date.now();
+                } else {
+                    this.lanternOn = true;
+                }
+            }
+        })
+
     }
 
     update(dt) {
@@ -18,8 +38,40 @@ class Player extends DynamicObject {
             this.speed = Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
         }
 
+        if (Date.now() - this.tickDate > 1000) {
+            if(Date.now() - this.lanternDateOff > 5000 && !this.lanternOn) this.psyche -= 1;
+            this.calculateAndTakeDamage()
+            this.tickDate = Date.now();
+        }
+
         this.coordinate.x += Math.cos(this.direction) * this.speed * dt;
         this.coordinate.y += Math.sin(this.direction) * this.speed * dt;
+    }
+
+    calculateAndTakeDamage() {
+        if (this.lanternOn) {
+            this.gas -= 1;
+            this.psyche = Math.min(this.psyche + 1, 100);
+        } else if (this.psyche < 50) {
+            this.health -= 1;
+        }
+    }
+
+    drawLantern() {
+        if (!this.lanternOn) return;
+        const cx = VIEW_W / 2;
+        const cy = VIEW_H / 2;
+        const r = this.visibleRadius;
+        const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
+        g.addColorStop(1, "rgba(255, 190, 80, 0)");
+
+        vctx.save();
+        vctx.fillStyle = g;
+        vctx.beginPath();
+        vctx.arc(cx, cy, r, 0, Math.PI * 2);
+        vctx.fill();
+        vctx.restore();
     }
 
     draw(ctx) {
@@ -52,5 +104,13 @@ class Player extends DynamicObject {
             ctx.stroke();
 
         }
+    }
+
+    heal(amount) {
+        this.health = Math.min(this.health + amount, 100);
+    }
+
+    fuel(amount) {
+        this.gas = Math.min(this.gas + amount, 100);
     }
 }
