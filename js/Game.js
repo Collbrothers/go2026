@@ -9,7 +9,15 @@ class Game {
         });
         this.objects = [this.player];
         this.loot = [];
-        this.spawnLoot(50)
+        this.sprite = new Image();
+        this.sprite.src = "default_sea.png"
+
+        this.sprite.onload = () => {
+            this.waterPattern = vctx.createPattern(this.sprite, "repeat");
+        };
+        this.waterPattern = "#2a6fb0";
+
+        this.spawnLoot(500)
         this.ui = new UI()
             .add(
                 new Bar({
@@ -109,16 +117,20 @@ class Game {
             obj.update(dt);
         }
 
-        for (const loot of this.loot) {
-            if (!loot.active) this.loot.splice(this.objects.indexOf(loot), 1);
-        }
-
-        vctx.fillStyle = "#2a6fb0";
+        vctx.fillStyle = vctx.createPattern(this.sprite, "repeat");
         vctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
+        this.loot = this.loot.filter(l => l.active);
+
         const p = this.player.coordinate;
+        const cx = Math.round(p.x);
+        const cy = Math.round(p.y);
+
         vctx.save();
-        vctx.translate(VIEW_W / 2 - Math.round(p.x), VIEW_H / 2 - Math.round(p.y));
+        vctx.translate(VIEW_W / 2 - cx, VIEW_H / 2 - cy);
+
+        vctx.fillStyle = this.waterPattern;
+        vctx.fillRect(cx - VIEW_W / 2, cy - VIEW_H / 2, VIEW_W, VIEW_H);
 
         if (DEBUG) this.drawDebugGrid();
 
@@ -129,8 +141,8 @@ class Game {
         }
         for (const o of this.objects) o.draw(vctx);
 
-        vctx.restore();
 
+        vctx.restore();
         this.drawVisionBubble();
         this.player.drawLantern();
         this.ui.draw(vctx);

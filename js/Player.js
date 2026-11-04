@@ -11,10 +11,7 @@ class Player extends DynamicObject {
         this.sprite.src = "boat.png";
         this.tickDate = Date.now();
         this.lanternOn = true;
-        this.times = {
-            lanternMaxSeconds: 30,
-            psycheMaxSeconds: 45,
-        }
+        this.inventory = new Inventory(3); // TODO: Implement
 
         document.addEventListener("keydown", e => {
             if (e.code === "KeyF") {
@@ -63,12 +60,12 @@ class Player extends DynamicObject {
     }
 
     drawLantern() {
-        if (!this.lanternOn || this.gas <= 0) return;
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
         const r = this.visibleRadius;
         const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
+        if (!this.lanternOn || this.gas <= 0) g.addColorStop(0, "rgb(62 58 55 / 0.6)");
+        else g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
         g.addColorStop(1, "rgba(255, 190, 80, 0)");
 
         vctx.save();
