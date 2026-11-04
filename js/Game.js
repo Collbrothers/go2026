@@ -5,7 +5,8 @@ class Game {
             width: 64,
             height: 64,
             acceleration: 60,
-            maxSpeed: 120,
+            minSpeed:-50,
+            maxSpeed: 120
         });
         this.objects = [this.player];
         this.loot = [];

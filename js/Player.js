@@ -35,13 +35,14 @@ class Player extends DynamicObject {
 
         if (state["KeyW"] || state["ArrowUp"]) {
             this.speed = Math.min(this.speed + this.acceleration * dt, this.maxSpeed);
-        }
-        if (state["KeyS"] || state["ArrowDown"]){
-            this.speed = Math.min(this.speed - this.acceleration * dt, this.minSpeed);
-        }
-         else {
+        }if (state["KeyS"] || state["ArrowDown"]){
+            this.speed = Math.max(this.speed - this.acceleration * dt, this.minSpeed);
+        }else {
+            if(this.speed<0){
+                this.speed = Math.min(this.speed - this.acceleration * 0.5 * dt, 0);
+            }else{
             this.speed = Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
-        }
+        }}
 
         if (Date.now() - this.tickDate > 1000) {
             if(Date.now() - this.lanternDateOff > 5000 && !this.lanternOn) this.psyche -= 1;
@@ -94,10 +95,6 @@ class Player extends DynamicObject {
         ctx.rotate(this.direction + Math.PI / 2);
         ctx.drawImage(this.sprite, -32, -32);
         ctx.restore();
-
-        ctx.fillStyle='limegreen'
-        ctx.fillRect(100,100,100,100)
-
         // draw rectangle as boat for now
         if (DEBUG) {
             ctx.save();
