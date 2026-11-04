@@ -7,7 +7,15 @@ class Game {
             acceleration: 60,
             maxSpeed: 120,
         });
-        this.objects = [this.player];
+        this.objects = [
+            this.player,
+            new Enemy({
+                coordinate: new Coordinate(20, 20),
+                width: 64,
+                height: 64,
+                target: this.player
+            })
+        ];
         this.loot = [];
         this.sprite = new Image();
         this.sprite.src = "default_sea.png"
