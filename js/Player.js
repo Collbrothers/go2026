@@ -39,7 +39,7 @@ class Player extends DynamicObject {
             this.speed = Math.max(this.speed - this.acceleration * dt, this.minSpeed);
         }else {
             if(this.speed<0){
-                this.speed = Math.min(this.speed - this.acceleration * 0.5 * dt, 0);
+                this.speed = Math.min(this.speed + this.acceleration * 0.5 * dt, 0);
             }else{
             this.speed = Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
         }}
