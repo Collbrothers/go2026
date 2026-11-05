@@ -10,10 +10,11 @@ class Game {
         this.objects = [
             this.player,
             new Enemy({
-                coordinate: new Coordinate(20, 20),
-                width: 64,
-                height: 64,
-                target: this.player
+                coordinate: new Coordinate(300, 200),
+                width: 64, height: 64,
+                target: this.player,
+                maxSpeed: 125,
+                acceleration: 60,
             })
         ];
         this.loot = [];
