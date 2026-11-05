@@ -9,6 +9,19 @@ class Player extends DynamicObject {
         this.turnRate = 2;
         this.sprite = new Image();
         this.sprite.src = "boat.png";
+        this.lanternOn = true;
+        this.tickDate = Date.now();
+
+        document.addEventListener("keydown", e => {
+            if (e.code === "KeyF") {
+                if (this.lanternOn) {
+                    this.lanternOn = false;
+                    this.lanternDateOff = Date.now();
+                } else if (this.gas > 0) {
+                    this.lanternOn = true;
+                }
+            }
+        })
     }
 
     update(dt) {
