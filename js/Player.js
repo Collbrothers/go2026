@@ -2,7 +2,7 @@ class Player extends DynamicObject {
     constructor(opts = {}) {
         super(opts);
         this.visibleRadius = 0;
-        this.baseRadius = 150;
+        this.baseRadius = 100;
         this.health = 100;
         this.gas = 100;
         this.psyche = 100;
