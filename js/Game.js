@@ -5,7 +5,8 @@ class Game {
             width: 64,
             height: 64,
             acceleration: 60,
-            maxSpeed: 120,
+            minSpeed:-50,
+            maxSpeed: 120
         });
         this.objects = [this.player];
         this.loot = [];
@@ -185,11 +186,23 @@ class Game {
         // Dark outside the bubble
         vctx.save();
         if (DEBUG) vctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        else vctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        else vctx.fillStyle = "rgba(0, 0, 0, 0.8)";
         vctx.beginPath();
         vctx.rect(0, 0, VIEW_W, VIEW_H);
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
         vctx.fill("evenodd"); // holy claude code review find
+        vctx.restore();
+
+        // Yellow/brown ish tint inside the bubble
+        const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
+        g.addColorStop(1, "rgba(255, 190, 80, 0)");
+
+        vctx.save();
+        vctx.fillStyle = g;
+        vctx.beginPath();
+        vctx.arc(cx, cy, r, 0, Math.PI * 2);
+        vctx.fill();
         vctx.restore();
     }
 

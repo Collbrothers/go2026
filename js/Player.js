@@ -9,21 +9,6 @@ class Player extends DynamicObject {
         this.turnRate = 2;
         this.sprite = new Image();
         this.sprite.src = "boat.png";
-        this.tickDate = Date.now();
-        this.lanternOn = true;
-        this.inventory = new Inventory(3); // TODO: Implement
-
-        document.addEventListener("keydown", e => {
-            if (e.code === "KeyF") {
-                if (this.lanternOn) {
-                    this.lanternOn = false;
-                    this.lanternDateOff = Date.now();
-                } else if (this.gas > 0) {
-                    this.lanternOn = true;
-                }
-            }
-        })
-
     }
 
     update(dt) {
@@ -32,8 +17,10 @@ class Player extends DynamicObject {
 
         if (state["KeyW"] || state["ArrowUp"]) {
             this.speed = Math.min(this.speed + this.acceleration * dt, this.maxSpeed);
-        } else {
-            this.speed = Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
+        } else if (state["KeyS"] || state["ArrowDown"]){
+            this.speed = Math.max(this.speed - this.acceleration * dt, this.minSpeed);
+        }else {
+            this.speed = this.speed < 0 ? Math.min(this.speed + this.acceleration * 0.5 * dt, 0) :  Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
         }
 
         if (Date.now() - this.tickDate > 1000) {
