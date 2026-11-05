@@ -9,24 +9,6 @@ class Player extends DynamicObject {
         this.turnRate = 2;
         this.sprite = new Image();
         this.sprite.src = "boat.png";
-        this.tickDate = Date.now();
-        this.lanternOn = true;
-        this.times = {
-            lanternMaxSeconds: 30,
-            psycheMaxSeconds: 45,
-        }
-
-        document.addEventListener("keydown", e => {
-            if (e.code === "KeyF") {
-                if (this.lanternOn) {
-                    this.lanternOn = false;
-                    this.lanternDateOff = Date.now();
-                } else if (this.gas > 0) {
-                    this.lanternOn = true;
-                }
-            }
-        })
-
     }
 
     update(dt) {
@@ -65,12 +47,12 @@ class Player extends DynamicObject {
     }
 
     drawLantern() {
-        if (!this.lanternOn || this.gas <= 0) return;
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
         const r = this.visibleRadius;
         const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
+        if (!this.lanternOn || this.gas <= 0) g.addColorStop(0, "rgb(62 58 55 / 0.6)");
+        else g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
         g.addColorStop(1, "rgba(255, 190, 80, 0)");
 
         vctx.save();
@@ -92,6 +74,7 @@ class Player extends DynamicObject {
         ctx.rotate(this.direction + Math.PI / 2);
         ctx.drawImage(this.sprite, -32, -32);
         ctx.restore();
+
         // draw rectangle as boat for now
         if (DEBUG) {
             ctx.save();
