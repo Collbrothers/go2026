@@ -6,12 +6,6 @@ class Loot extends GameObject {
     }
 
     draw(ctx) {
-        ctx.fillStyle = "gold";
         ctx.drawImage(this.sprite, this.coordinate.x, this.coordinate.y, 32, 32);
-        /*ctx.fillRect(
-            Math.round(this.coordinate.x - this.width / 2),
-            Math.round(this.coordinate.y - this.height / 2),
-            this.width, this.height
-        );*/
     }
 }

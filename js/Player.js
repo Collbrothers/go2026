@@ -2,7 +2,7 @@ class Player extends DynamicObject {
     constructor(opts = {}) {
         super(opts);
         this.visibleRadius = 0;
-        this.baseRadius = 150;
+        this.baseRadius = 100;
         this.health = 100;
         this.gas = 100;
         this.psyche = 100;
@@ -66,8 +66,6 @@ class Player extends DynamicObject {
     draw(ctx) {
         const x = Math.round(this.coordinate.x);
         const y = Math.round(this.coordinate.y);
-        const w = this.width;
-        const h = this.height;
 
         ctx.save();
         ctx.translate(x, y);
@@ -75,23 +73,29 @@ class Player extends DynamicObject {
         ctx.drawImage(this.sprite, -32, -32);
         ctx.restore();
 
-        // draw rectangle as boat for now
         if (DEBUG) {
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(
+                x - this.width / 2 + 0.5,
+                y - this.height / 2 + 0.5,
+                this.width - 1,
+                this.height - 1
+            );
+
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(this.direction);
-
-            ctx.fillStyle = "blue";
-            ctx.fillRect(-w / 2, -h / 2, w, h);
-            ctx.fillStyle = "red";
-            ctx.fillRect(w / 2 - 4, -8, 16, 16);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(this.width / 2 + 8, 0);
+            ctx.stroke();
             ctx.restore();
 
             ctx.strokeStyle = "black";
             ctx.beginPath();
             ctx.arc(x, y, this.visibleRadius, 0, Math.PI * 2);
             ctx.stroke();
-
         }
     }
 

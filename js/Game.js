@@ -8,7 +8,17 @@ class Game {
             minSpeed:-50,
             maxSpeed: 120
         });
-        this.objects = [this.player];
+        this.objects = [
+            this.player,
+            new Enemy({
+                coordinate: new Coordinate(200, 800),
+                width: 64, height: 64,
+                target: this.player,
+                maxSpeed: 120,
+                acceleration: 60,
+            })
+        ];
+        this.state = "playing"; // playing || lost || won || intro (maybe).
         this.loot = [];
         this.sprite = new Image();
         this.sprite.src = "default_sea.png"
@@ -112,7 +122,18 @@ class Game {
         const dt = Math.min((now - this.last) / 1000, 0.1);
         this.last = now;
 
+        if (this.player.health <= 0) {
+            this.state = "lost";
+            return;
+        }
+
+        if (this.state !== "playing") {
+
+        }
+
         this.checkCollision();
+
+        this.objects = this.objects.filter(obj => obj.active);
 
         for (const obj of this.objects) {
             obj.update(dt);
@@ -171,7 +192,7 @@ class Game {
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
         const base = this.player.baseRadius;
-        const min = 50;
+        const min = 20;
 
         if (this.player.gas < 20) {
             const t = this.player.gas / 20;
