@@ -122,7 +122,6 @@ class Enemy extends DynamicObject {
 
         this.coordinate.x += Math.cos(this.direction) * this.maxSpeed * dt;
         this.coordinate.y += Math.sin(this.direction) * this.maxSpeed * dt;
-        console.log(this.coordinate);
 
         // Give up the search
         this.searchTime += dt;
