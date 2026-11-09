@@ -29,6 +29,20 @@ class Game {
         this.waterPattern = "#2a6fb0";
 
         this.spawnLoot(500)
+
+        this.rescue = {
+            phase: "generals", // generals || land
+            index: 0,
+            target: null, // current general in the water
+            land: null, // coords of the island, sets when phase is land
+            timeLeft: 0,
+            age: 0, // seconds since target general spawned
+            arcOffset: 0, // idk broski trello says "general direction"
+        };
+
+        this.spawnGeneral();
+        console.log(this.rescue.target.coordinate)
+
         this.ui = new UI()
             .add(
                 new Bar({
@@ -100,6 +114,66 @@ class Game {
         }
     }
 
+    randomCoordinateFromCoordinate(coordinate, minDist, maxDist) {
+        const limit = WORLD_SIZE / 2 - 100; // Limits coordinate from world border by 100 px
+        let x,y;
+
+        for (;;) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = minDist + Math.random() * (maxDist - minDist);
+            x = coordinate.x + Math.cos(angle) * distance;
+            y = coordinate.y + Math.sin(angle) * distance;
+
+            if (Math.abs(x) <= limit && Math.abs(y) <= limit) return new Coordinate(x, y)
+        }
+
+
+    }
+
+    spawnGeneral() {
+        const pos = this.randomCoordinateFromCoordinate(this.player.coordinate, RESCUE.minDist, RESCUE.maxDist);
+        const dist = Math.hypot(pos.x, pos.y);
+
+        this.rescue.target = new General({
+            coordinate: pos,
+            width: 16,
+            height: 16,
+            name: GENERALS[this.rescue.index].name
+        });
+
+        this.rescue.timeLeft = dist / this.player.maxSpeed + RESCUE.bufferTime;
+        this.rescue.age = 0;
+
+        this.rescue.arcOffset = 0; // TODO: add a bit of randomness
+    }
+
+    updateRescue(dt) {
+        // TODO: check if phase is land, do the whole winning state then, check if boat collides with general
+        this.rescue.age += dt;
+        this.rescue.timeLeft -= dt;
+
+        if (this.rescue.timeLeft <= 0) this.state = "lost";
+    }
+
+    drawTargetHint() {
+        if (this.rescue.phase !== "generals" || !this.rescue.target) return;
+
+        if (this.rescue.age % (2 * RESCUE.hintVisibilitySeconds) >= RESCUE.hintVisibilitySeconds) return;
+
+        const p = this.player.coordinate;
+        const t = this.rescue.target.coordinate;
+        const angle = Math.atan2(t.y - p.y, t.x - p.x) + this.rescue.arcOffset;
+
+        vctx.save();
+        vctx.strokeStyle = "#ffd866";
+        vctx.lineWidth = 3;
+        vctx.beginPath();
+        vctx.arc(VIEW_W / 2, VIEW_H / 2, this.player.visibleRadius + 12, angle - Math.PI / 3, angle + Math.PI / 3);
+        vctx.stroke();
+        vctx.restore();
+
+    }
+
     initListeners() {
         document.addEventListener("keydown", (e) => { state[e.code] = true; });
         document.addEventListener("keyup", (e) => { state[e.code] = false; });
@@ -119,6 +193,7 @@ class Game {
             this.objects = this.objects.filter(o => o.active);
             for (const o of this.objects) o.update(dt);
             this.loot = this.loot.filter(l => l.active);
+            this.updateRescue(dt);
         }
 
 
@@ -143,11 +218,14 @@ class Game {
             if (Math.abs(l.coordinate.y - p.y) > VIEW_H / 2 + 32) continue;
             l.draw(vctx);
         }
+
+        if (this.rescue.target) this.rescue.target.draw(vctx);
         for (const o of this.objects) o.draw(vctx);
 
 
         vctx.restore();
         this.drawVisionBubble();
+        this.drawTargetHint();
         this.ui.draw(vctx);
 
 
