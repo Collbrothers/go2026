@@ -8,12 +8,12 @@ class UI {
         return this;
     }
 
-    draw() {
-        vctx.save();
+    draw(ctx) {
+        ctx.save();
         for (const e of this.elements){
             if (e.debugOnly && !DEBUG) continue;
-            e.draw();
+            e.draw(ctx);
         }
-        vctx.restore();
+        ctx.restore();
     }
 }

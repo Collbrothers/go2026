@@ -6,7 +6,7 @@ class Loot extends GameObject {
 
     constructor(opts) {
         super(opts);
-        this.interval = 0.35;
+        this.interval = 0.45;
         this.phase = Math.random() * 4;
     }
 

@@ -21,7 +21,7 @@ class Game {
         this.state = "playing"; // playing || lost || won || intro (maybe).
         this.loot = [];
         this.sprite = new Image();
-        this.sprite.src = "default_sea.png"
+        this.sprite.src = "sea.png"
 
         this.sprite.onload = () => {
             this.waterPattern = vctx.createPattern(this.sprite, "repeat");
@@ -43,24 +43,12 @@ class Game {
                 })
             )
             .add(
-                new Bar({
-                    anchor: "topright",
-                    x: 8,
-                    y: 32,
-                    width: 100,
-                    height: 8,
-                    getValue: () => this.player.psyche,
-                    color: "#743485",
-                    max: 100
-                })
-            )
-            .add(
                 new Label({
                     anchor: "topright",
                     x: 8,
                     y: 56,
                     width: 100,
-                    getText: () => `H${this.player.health}, G${this.player.gas}, P${this.player.psyche}`,
+                    getText: () => `H${Math.floor(this.player.health)}, G${Math.floor(this.player.gas)}`,
                     debugOnly: true
                 })
             )
@@ -86,8 +74,8 @@ class Game {
                     max: 100
                 })
             )
+            .add(new Hotbar({ anchor: "bottomcenter", y: 8, getInventory: () => this.player.inventory }))
         this.last = 0;
-        this.lastHealthTick = Date.now();
     }
 
     start() {
@@ -122,27 +110,21 @@ class Game {
         const dt = Math.min((now - this.last) / 1000, 0.1);
         this.last = now;
 
-        if (this.player.health <= 0) {
+        if (this.state === "playing" && this.player.health <= 0) {
             this.state = "lost";
-            return;
         }
 
-        if (this.state !== "playing") {
-
+        if (this.state === "playing") {
+            this.checkCollision();
+            this.objects = this.objects.filter(o => o.active);
+            for (const o of this.objects) o.update(dt);
+            this.loot = this.loot.filter(l => l.active);
         }
 
-        this.checkCollision();
 
-        this.objects = this.objects.filter(obj => obj.active);
-
-        for (const obj of this.objects) {
-            obj.update(dt);
-        }
 
         vctx.fillStyle = vctx.createPattern(this.sprite, "repeat");
         vctx.fillRect(0, 0, VIEW_W, VIEW_H);
-
-        this.loot = this.loot.filter(l => l.active);
 
         const p = this.player.coordinate;
         const cx = Math.round(p.x);
@@ -166,12 +148,23 @@ class Game {
 
         vctx.restore();
         this.drawVisionBubble();
-        this.player.drawLantern();
         this.ui.draw(vctx);
+
+
+        if (this.state === "lost") this.drawLostMenu(vctx);
 
         ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
 
         requestAnimationFrame((t) => this.gameloop(t));
+    }
+
+    drawLostMenu(ctx) {
+        ctx.fillStyle = "rgb(0 0 0 / 0.42)";
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+        ctx.font = "40px monospace";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.fillText("Lost", VIEW_W / 2, VIEW_H / 2);
     }
 
     checkCollision() {
@@ -179,8 +172,12 @@ class Game {
             if (!loot.active) continue;
 
             if (loot instanceof Loot && this.player.collidesWith(loot)) {
+                if (!this.player.inventory.full) {
+                    if (this.player.inventory.add({ type: "chest", icon: Loot.frames[0] })) {
+                        loot.active = false;
+                    }
+                }
                 this.player.heal(Math.floor(Math.random() * 20) + 10);
-                loot.active = false;
             } else if (loot instanceof Wood && this.player.collidesWith(loot)) {
                 this.player.fuel(15);
                 loot.active = false;
@@ -191,40 +188,51 @@ class Game {
     drawVisionBubble() {
         const cx = VIEW_W / 2;
         const cy = VIEW_H / 2;
+        const light = this.player.lightLevel;
         const base = this.player.baseRadius;
-        const min = 20;
+        const min = 80;
 
+        // shrink bubble based on % gas when gas% < 20
+        let radius = base;
         if (this.player.gas < 20) {
             const t = this.player.gas / 20;
-            this.player.visibleRadius = min + (base - min) * Math.pow(t, 2);
-        } else {
-            this.player.visibleRadius = base;
+            radius = min + (base - min) * t * t;
         }
 
-        let r = this.player.visibleRadius;
+        // shrink buble to 55% if lantern si off
+        const r = radius * (0.55 + 0.45 * light);
+        this.player.visibleRadius = r;
 
-
-        // Dark outside the bubble
+        // dark outside the bubble
+        const outer = (DEBUG ? 0.5 : 0.8) + 0.17 * (1 - light);
         vctx.save();
-        if (DEBUG) vctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        else vctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        vctx.fillStyle = `rgba(0, 0, 0, ${outer})`;
         vctx.beginPath();
         vctx.rect(0, 0, VIEW_W, VIEW_H);
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
-        vctx.fill("evenodd"); // holy claude code review find
+        vctx.fill("evenodd");
         vctx.restore();
 
-        // Yellow/brown ish tint inside the bubble
-        const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
-        g.addColorStop(1, "rgba(255, 190, 80, 0)");
-
+        // inside bubble, dimmed if lantenr is off
         vctx.save();
-        vctx.fillStyle = g;
+        vctx.fillStyle = `rgba(0, 0, 0, ${0.5 * (1 - light)})`;
         vctx.beginPath();
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
         vctx.fill();
         vctx.restore();
+
+        // idk this is as "warm feeling" I could get
+        if (light > 0.01) {
+            const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+            g.addColorStop(0, `rgba(255, 190, 80, ${0.30 * light})`);
+            g.addColorStop(1, "rgba(255, 190, 80, 0)");
+            vctx.save();
+            vctx.fillStyle = g;
+            vctx.beginPath();
+            vctx.arc(cx, cy, r, 0, Math.PI * 2);
+            vctx.fill();
+            vctx.restore();
+        }
     }
 
     drawDebugGrid() {

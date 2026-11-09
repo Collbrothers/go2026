@@ -9,12 +9,30 @@ class UIElement {
     }
 
     get pos() {
-        const right  = this.anchor.includes("right");
-        const bottom = this.anchor.includes("bottom");
-        return {
-            x: Math.round(right  ? VIEW_W - this.width  - this.offsetX : this.offsetX),
-            y: Math.round(bottom ? VIEW_H - this.height - this.offsetY : this.offsetY),
-        };
+        const a = this.anchor;
+
+        let x;
+
+        if (a.includes("right")) {
+            x = VIEW_W - this.width - this.offsetX;
+        } else if (a.includes("center")) {
+            x = (VIEW_W - this.width) / 2 + this.offsetX;
+        } else {
+            x = this.offsetX;
+        }
+
+        let y;
+        if (a.includes("bottom")) {
+            y = VIEW_H - this.height - this.offsetY;
+        }
+        else if (a.includes("middle")) {
+            y = (VIEW_H - this.height) / 2 + this.offsetY;
+        }
+        else {
+            y = this.offsetY;
+        }
+
+        return { x: Math.round(x), y: Math.round(y) };
     }
 
     draw() {}

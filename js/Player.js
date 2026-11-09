@@ -5,26 +5,31 @@ class Player extends DynamicObject {
         this.baseRadius = 100;
         this.health = 100;
         this.gas = 100;
-        this.psyche = 100;
         this.turnRate = 2;
+        this.lightLevel = 1;
+        this.lanternDuration = 15;
+        this.darkDamage = 5;
         this.sprite = new Image();
         this.sprite.src = "boat.png";
         this.lanternOn = true;
-        this.tickDate = Date.now();
+        this.inventory = new Inventory(3);
 
         document.addEventListener("keydown", e => {
-            if (e.code === "KeyF") {
-                if (this.lanternOn) {
-                    this.lanternOn = false;
-                    this.lanternDateOff = Date.now();
-                } else if (this.gas > 0) {
-                    this.lanternOn = true;
-                }
-            }
-        })
+            if (e.code !== "KeyF" || e.repeat) return;
+            if (this.lanternOn) this.lanternOn = false;
+            else if (this.gas > 0) this.lanternOn = true;
+        });
     }
 
     update(dt) {
+        this.lightLevel += ((this.lanternOn ? 1 : 0) - this.lightLevel) * Math.min(1, 6 * dt);
+
+        for (let i = 1; i <= this.inventory.size; i++) {
+            if (state[`Digit${i}`] === true) {
+                this.inventory.select(i - 1);
+            }
+        }
+
         if (state["KeyA"] || state["ArrowLeft"]) this.direction -= this.turnRate * dt;
         if (state["KeyD"] || state["ArrowRight"]) this.direction += this.turnRate * dt;
 
@@ -36,44 +41,15 @@ class Player extends DynamicObject {
             this.speed = this.speed < 0 ? Math.min(this.speed + this.acceleration * 0.5 * dt, 0) :  Math.max(this.speed - this.acceleration * 0.5 * dt, 0);
         }
 
-        if (Date.now() - this.tickDate > 1000) {
-            if(Date.now() - this.lanternDateOff > 5000 && !this.lanternOn) this.psyche -= 1;
-            this.calculateAndTakeDamage()
-            this.tickDate = Date.now();
+        if (this.lanternOn) {
+            this.gas = Math.max(this.gas - (100 / this.lanternDuration) * dt, 0);
+            if (this.gas <= 0) this.lanternOn = false;
+        } else {
+            this.health = Math.max(this.health - this.darkDamage * dt, 0);
         }
 
         this.coordinate.x += Math.cos(this.direction) * this.speed * dt;
         this.coordinate.y += Math.sin(this.direction) * this.speed * dt;
-    }
-
-    calculateAndTakeDamage() {
-        if (this.lanternOn) {
-            this.gas = Math.max(this.gas - 1, 0);
-            if (this.gas <= 0) {
-                this.lanternOn = false;
-                this.lanternDateOff = Date.now();
-            }
-            this.psyche = Math.min(this.psyche + 1, 100);
-        } else if (this.psyche < 50) {
-            this.health -= 1;
-        }
-    }
-
-    drawLantern() {
-        const cx = VIEW_W / 2;
-        const cy = VIEW_H / 2;
-        const r = this.visibleRadius;
-        const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        if (!this.lanternOn || this.gas <= 0) g.addColorStop(0, "rgb(62 58 55 / 0.6)");
-        else g.addColorStop(0, "rgba(255, 190, 80, 0.30)");
-        g.addColorStop(1, "rgba(255, 190, 80, 0)");
-
-        vctx.save();
-        vctx.fillStyle = g;
-        vctx.beginPath();
-        vctx.arc(cx, cy, r, 0, Math.PI * 2);
-        vctx.fill();
-        vctx.restore();
     }
 
     draw(ctx) {

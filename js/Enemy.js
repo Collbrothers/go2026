@@ -64,31 +64,6 @@ class Enemy extends DynamicObject {
         }
     }
 
-    steer(dt) {
-        if (!this.lastKnown) return;
-
-        const dx = this.lastKnown.x - this.coordinate.x;
-        const dy = this.lastKnown.y - this.coordinate.y;
-        const dist = Math.hypot(dx, dy);
-
-        // Turns towards the last direction, limited by the turn rate
-        let diff = Math.atan2(dy, dx) - this.direction;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // Claude generated
-        const maxTurn = this.turnRate * dt;
-        this.direction += Math.max(-maxTurn, Math.min(maxTurn, diff));
-
-        // Accelerate towards maxSpeed, or brake if distance to target is greater than stopDistance (break when close)
-        const targetSpeed = dist > this.stopDistance ? this.maxSpeed : 0;
-        if (this.speed < targetSpeed) {
-            this.speed = Math.min(this.speed + this.acceleration * dt, targetSpeed);
-        } else {
-            this.speed = Math.max(this.speed - this.acceleration * dt, targetSpeed);
-        }
-
-        this.coordinate.x += Math.cos(this.direction) * this.speed * dt;
-        this.coordinate.y += Math.sin(this.direction) * this.speed * dt;
-    }
-
     hunt(dt) {
         if (!this.lastKnown) return;
         let diff = Math.atan2(this.lastKnown.y - this.coordinate.y,
@@ -125,7 +100,6 @@ class Enemy extends DynamicObject {
 
         // Give up the search
         this.searchTime += dt;
-        const dx = t.x - this.coordinate.x, dy = t.y - this.coordinate.y;
         if (this.searchTime > this.maxSearchTime) {
             if (DEBUG) console.log("Enemy: Despawn")
             this.active = false;
@@ -136,7 +110,7 @@ class Enemy extends DynamicObject {
         const x = Math.round(this.coordinate.x);
         const y = Math.round(this.coordinate.y);
 
-        ctx.fillStyle = "#a33";
+        ctx.fillStyle = "#a31465";
         ctx.fillRect(x - this.width / 2, y - this.height / 2, this.width, this.height);
 
         if (this.flash > 0) {

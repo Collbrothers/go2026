@@ -7,7 +7,7 @@ const VIEW_W = 640;
 const VIEW_H = 360;
 const SCALE = 2;
 const WORLD_SIZE = 4000;
-let DEBUG = true;
+let DEBUG = false;
 const state = {};
 
 canvas.width = VIEW_W * SCALE;
