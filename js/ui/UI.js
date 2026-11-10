@@ -1,4 +1,6 @@
-class UI {
+import { DEBUG } from "../config.js";
+
+export class UI {
     constructor() {
         this.elements = [];
     }
@@ -10,8 +12,9 @@ class UI {
 
     draw(ctx) {
         ctx.save();
-        for (const e of this.elements){
+        for (const e of this.elements) {
             if (e.debugOnly && !DEBUG) continue;
+            if (!e.isVisible()) continue;
             e.draw(ctx);
         }
         ctx.restore();

@@ -1,4 +1,6 @@
-class DynamicObject extends GameObject {
+import { GameObject } from "./GameObject.js";
+
+export class DynamicObject extends GameObject {
     constructor(opts = {}) {
         super(opts);
         this.direction = opts.direction ?? 0;

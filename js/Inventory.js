@@ -1,12 +1,16 @@
-class Inventory {
+export class Inventory {
     constructor(size = 3) {
         this.slots = new Array(size).fill(null);
         this.selected = null;
         this.size = size;
     }
 
-    get full() { return !this.slots.includes(null); }
-    get current() { return this.slots[this.selected]; } // for future usage
+    get full() {
+        return !this.slots.includes(null);
+    }
+    get current() {
+        return this.slots[this.selected];
+    } // for future usage
 
     add(item) {
         const i = this.slots.indexOf(null);

@@ -1,50 +1,95 @@
-class Game {
+import { WORLD_SIZE, VIEW_W, VIEW_H, DEBUG, GENERALS, RESCUE, CHESTS } from "./config.js";
+import { canvas, ctx, view, vctx } from "./canvas.js";
+import { state, mouse } from "./state.js";
+import { ITEMS } from "./items.js";
+import { Coordinate } from "./Coordinate.js";
+import { Player } from "./Player.js";
+import { Enemy } from "./Enemy.js";
+import { General } from "./General.js";
+import { Loot } from "./Loot.js";
+import { Wood } from "./Wood.js";
+import { UI } from "./ui/UI.js";
+import { Bar } from "./ui/Bar.js";
+import { Label } from "./ui/Label.js";
+import { Hotbar } from "./ui/Hotbar.js";
+import { ChestPanel } from "./ui/ChestPanel.js";
+import { Compass } from "./ui/Compass.js";
+import { FrenchShip } from "./FrenchShip.js";
+
+export class Game {
     constructor() {
         this.player = new Player({
             coordinate: new Coordinate(0, 0),
             width: 64,
             height: 64,
             acceleration: 60,
-            minSpeed:-50,
-            maxSpeed: 120
+            minSpeed: -50,
+            maxSpeed: 120,
         });
         this.objects = [
             this.player,
             new Enemy({
                 coordinate: new Coordinate(200, 800),
-                width: 64, height: 64,
+                width: 64,
+                height: 64,
                 target: this.player,
                 maxSpeed: 120,
                 acceleration: 60,
-            })
+            }),
         ];
         this.state = "playing"; // playing || lost || won || intro (maybe).
         this.loot = [];
-        this.sprite = new Image();
-        this.sprite.src = "sea.png"
+        this.sprite = Object.assign(new Image(), { src: "assets/sea/sea.png" });
 
         this.sprite.onload = () => {
             this.waterPattern = vctx.createPattern(this.sprite, "repeat");
         };
         this.waterPattern = "#2a6fb0";
 
+        this.fogSprite = new Image();
+        this.fogSprite.src = "assets/fog/standard-fog.png";
+        this.fogSprite.onload = () => {
+            this.fogPattern = vctx.createPattern(this.fogSprite, "repeat");
+        };
+        this.fogPattern = "#4e4a4e"; // fallback until the png loads
+        this.huntGlow = 0;
+
         this.spawnLoot(500);
 
         this.chestTimer = 0;
-        for (let i = 0; i < CHESTS.max; i++) this.spawnChest();
+        this.openedChest = null;
+        this.regens = [];
+
+        this.nearChest = null;
+        this.nearGeneral = false;
+        this.drag = null; // obj iwht list and index
+        for (let i = 0; i < CHESTS.maxPerArea; i++) this.spawnChest();
 
         this.rescue = {
-            phase: "generals", // generals || land
+            phase: "generals", // generals || french
             index: 0,
             target: null, // current general in the water
-            land: null, // coords of the island, sets when phase is land
+            french: null, // the french ship, spawns when phase is french
             timeLeft: 0,
             age: 0, // seconds since target general spawned
             arcOffset: 0, // idk broski trello says "general direction"
         };
 
         this.spawnGeneral();
-        console.log(this.rescue.target.coordinate)
+
+        this.hotbar = new Hotbar({
+            anchor: "bottomcenter",
+            y: 8,
+            getInventory: () => this.player.inventory,
+            getDrag: () => this.drag,
+        });
+        this.chestPanel = new ChestPanel({
+            anchor: "bottomcenter",
+            y: 38,
+            getChest: () => this.openedChest,
+            getDrag: () => this.drag,
+            getHover: () => this.slotAt(mouse.x, mouse.y),
+        });
 
         this.ui = new UI()
             .add(
@@ -52,12 +97,18 @@ class Game {
                     anchor: "topright",
                     x: 8,
                     y: 8,
-                    width: 100,
-                    height: 8,
+                    // dry-wood.png is 32x10, drawn at 2x so pixels stay crisp
+                    width: 64,
+                    height: 20,
+                    background: Object.assign(new Image(), {
+                        src: "assets/ui/dry-wood.png",
+                    }),
+                    // wood area is 4/2/2/4 at 2x, plus 2px margin so plank shows around the fill
+                    inset: { left: 6, top: 4, right: 4, bottom: 6 },
                     getValue: () => this.player.health,
                     color: "#078723",
-                    max: 100
-                })
+                    max: 100,
+                }),
             )
             .add(
                 new Label({
@@ -65,9 +116,10 @@ class Game {
                     x: 8,
                     y: 56,
                     width: 100,
-                    getText: () => `H${Math.floor(this.player.health)}, G${Math.floor(this.player.gas)}`,
-                    debugOnly: true
-                })
+                    getText: () =>
+                        `H${Math.floor(this.player.health)}, G${Math.floor(this.player.gas)}`,
+                    debugOnly: true,
+                }),
             )
             .add(
                 new Label({
@@ -75,9 +127,10 @@ class Game {
                     x: 8,
                     y: 80,
                     width: 100,
-                    getText: () => `${Math.round(this.player.coordinate.x)}, ${Math.round(this.player.coordinate.y)}`,
-                    debugOnly: true
-                })
+                    getText: () =>
+                        `${Math.round(this.player.coordinate.x)}, ${Math.round(this.player.coordinate.y)}`,
+                    debugOnly: true,
+                }),
             )
             .add(
                 new Bar({
@@ -88,11 +141,28 @@ class Game {
                     height: 8,
                     getValue: () => this.player.gas,
                     color: "#E37C07",
-                    max: 100
-                })
+                    max: 100,
+                }),
             )
-            .add(new Hotbar({ anchor: "bottomcenter", y: 8, getInventory: () => this.player.inventory }))
+            .add(
+                new Compass({
+                    anchor: "bottomright",
+                    x: 8,
+                    y: 8,
+                    // compass pngs are 32x32, drawn at 2x like the wood bar
+                    width: 64,
+                    height: 64,
+                    isVisible: () => this.rescue.index >= RESCUE.compassAfter,
+                    getAngle: () => this.frenchShipAngle(),
+                }),
+            )
+            .add(this.hotbar)
+            .add(this.chestPanel);
         this.last = 0;
+    }
+
+    get hunted() {
+        return this.objects.some((e) => e instanceof Enemy && e.active && e.state === "hunting");
     }
 
     start() {
@@ -107,22 +177,29 @@ class Game {
 
             // continue if 150px close to the start
             if (Math.hypot(x, y) < 150) continue;
-            this.loot.push(new Wood({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            this.loot.push(
+                new Wood({
+                    coordinate: new Coordinate(x, y),
+                    width: 16,
+                    height: 16,
+                }),
+            );
         }
     }
-
 
     updateChests(dt) {
         let count = 0;
 
         for (const loot of this.loot) {
-            if(!(loot instanceof Loot) || !loot.active) continue;
-            if (Math.abs(loot.coordinate.x - this.player.coordinate.x) > (CHESTS.areaSize / 2) || Math.abs(loot.coordinate.y - this.player.coordinate.y) > (CHESTS.areaSize / 2)) {
+            if (!(loot instanceof Loot) || !loot.active) continue;
+            if (
+                Math.abs(loot.coordinate.x - this.player.coordinate.x) > CHESTS.areaSize / 2 ||
+                Math.abs(loot.coordinate.y - this.player.coordinate.y) > CHESTS.areaSize / 2
+            ) {
                 loot.active = false; // despawn loot if its outside the area of chest spawns
             } else {
                 count++;
             }
-
         }
 
         this.chestTimer -= dt;
@@ -132,44 +209,81 @@ class Game {
         }
     }
 
+    updateHunted(dt) {
+        const target = this.hunted ? 1 : 0;
+        this.huntGlow += (target - this.huntGlow) * Math.min(1, 6 * dt);
+    }
 
     spawnChest() {
         for (let i = 0; i < 20; i++) {
             const x = this.player.coordinate.x + (Math.random() * 2 - 1) * (CHESTS.areaSize / 2);
             const y = this.player.coordinate.y + (Math.random() * 2 - 1) * (CHESTS.areaSize / 2);
-            if (Math.hypot(x - this.player.coordinate.x, y - this.player.coordinate.y) < (this.player.baseRadius + CHESTS.safeMargin)) continue;
-            this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            if (
+                Math.hypot(x - this.player.coordinate.x, y - this.player.coordinate.y) <
+                this.player.baseRadius + CHESTS.safeMargin
+            )
+                continue;
+            const chest = new Loot({
+                coordinate: new Coordinate(x, y),
+                width: 16,
+                height: 16,
+            });
+            chest.slots = this.rollChestSlots();
+            this.loot.push(chest);
             return true;
         }
         return false;
     }
 
+    rollChestSlots() {
+        return Array.from({ length: Math.random() < CHESTS.twoSlotChance ? 2 : 1 }, () => {
+            const ids = Object.keys(ITEMS);
+            const total = ids.reduce((sum, id) => sum + ITEMS[id].weight, 0);
+            let roll = Math.random() * total;
+            for (const id of ids) {
+                roll -= ITEMS[id].weight;
+                if (roll < 0) return id;
+            }
+        });
+    }
+
+    chestInRange(chest, range) {
+        return (
+            Math.hypot(
+                chest.coordinate.x - this.player.coordinate.x,
+                chest.coordinate.y - this.player.coordinate.y,
+            ) <= range
+        );
+    }
 
     randomCoordinateFromCoordinate(coordinate, minDist, maxDist) {
         const limit = WORLD_SIZE / 2 - 100; // Limits coordinate from world border by 100 px
-        let x,y;
+        let x, y;
 
+        // player cant leave the world anymore (see Player.update) so this always finds a spot
         for (;;) {
             const angle = Math.random() * Math.PI * 2;
             const distance = minDist + Math.random() * (maxDist - minDist);
             x = coordinate.x + Math.cos(angle) * distance;
             y = coordinate.y + Math.sin(angle) * distance;
 
-            if (Math.abs(x) <= limit && Math.abs(y) <= limit) return new Coordinate(x, y)
+            if (Math.abs(x) <= limit && Math.abs(y) <= limit) return new Coordinate(x, y);
         }
-
-
     }
 
     spawnGeneral() {
-        const pos = this.randomCoordinateFromCoordinate(this.player.coordinate, RESCUE.minDist, RESCUE.maxDist);
-        const dist = Math.hypot(pos.x, pos.y);
+        const pos = this.randomCoordinateFromCoordinate(
+            this.player.coordinate,
+            RESCUE.minDist,
+            RESCUE.maxDist,
+        );
+        const dist = Math.hypot(pos.x - this.player.coordinate.x, pos.y - this.player.coordinate.y);
 
         this.rescue.target = new General({
             coordinate: pos,
             width: 16,
             height: 16,
-            name: GENERALS[this.rescue.index].name
+            name: GENERALS[this.rescue.index].name,
         });
 
         this.rescue.timeLeft = dist / this.player.maxSpeed + RESCUE.bufferTime;
@@ -178,18 +292,67 @@ class Game {
         this.rescue.arcOffset = 0; // TODO: add a bit of randomness
     }
 
+    spawnFrenchShip() {
+        this.rescue.french = new FrenchShip({
+            coordinate: this.randomCoordinateFromCoordinate(
+                this.player.coordinate,
+                RESCUE.frenchMin,
+                RESCUE.frenchMax,
+            ),
+            width: 96,
+            height: 192,
+        });
+    }
+
+    frenchShipAngle() {
+        const f = this.rescue.french;
+        if (!f) return 0;
+        const p = this.player.coordinate;
+        return Math.atan2(f.coordinate.y - p.y, f.coordinate.x - p.x) + Math.PI / 2;
+    }
+
     updateRescue(dt) {
-        // TODO: check if phase is land, do the whole winning state then, check if boat collides with general
+        if (this.rescue.phase === "french") {
+            const f = this.rescue.french.coordinate;
+            const p = this.player.coordinate;
+            if (Math.hypot(f.x - p.x, f.y - p.y) <= RESCUE.frenchRange) this.state = "won";
+            return;
+        }
+        if (this.rescue.phase !== "generals") return;
+
         this.rescue.age += dt;
         this.rescue.timeLeft -= dt;
-
         if (this.rescue.timeLeft <= 0) this.state = "lost";
+
+        const t = this.rescue.target.coordinate;
+        const p = this.player.coordinate;
+        this.nearGeneral = Math.hypot(t.x - p.x, t.y - p.y) <= RESCUE.pickupRange;
+    }
+
+    rescueGeneral() {
+        this.rescue.index++;
+        this.nearGeneral = false;
+
+        if (this.rescue.index < GENERALS.length) {
+            this.spawnGeneral();
+        } else {
+            this.rescue.phase = "french";
+            this.rescue.target = null;
+            this.spawnFrenchShip();
+        }
+    }
+
+    // TODO: fix close-spawns so this isnt needed
+    interact() {
+        if (this.nearGeneral) this.rescueGeneral();
+        else this.toggleChest();
     }
 
     drawTargetHint() {
         if (this.rescue.phase !== "generals" || !this.rescue.target) return;
 
-        if (this.rescue.age % (2 * RESCUE.hintVisibilitySeconds) >= RESCUE.hintVisibilitySeconds) return;
+        if (this.rescue.age % (2 * RESCUE.hintVisibilitySeconds) >= RESCUE.hintVisibilitySeconds)
+            return;
 
         const p = this.player.coordinate;
         const t = this.rescue.target.coordinate;
@@ -199,15 +362,205 @@ class Game {
         vctx.strokeStyle = "#ffd866";
         vctx.lineWidth = 3;
         vctx.beginPath();
-        vctx.arc(VIEW_W / 2, VIEW_H / 2, this.player.visibleRadius + 12, angle - Math.PI / 3, angle + Math.PI / 3);
+        vctx.arc(
+            VIEW_W / 2,
+            VIEW_H / 2,
+            this.player.visibleRadius + 12,
+            angle - Math.PI / 3,
+            angle + Math.PI / 3,
+        );
         vctx.stroke();
         vctx.restore();
+    }
 
+    // red border that pulses when the enemy sees you
+    drawHuntedEdge() {
+        if (this.huntGlow < 0.01 || this.state !== "playing") return;
+
+        const time = performance.now() / 1000;
+        const alpha = this.huntGlow * (0.45 + 0.15 * Math.sin(time * 10));
+
+        // 4px wide rings, fading out towards the middle
+        vctx.save();
+        vctx.lineWidth = 4;
+        for (let i = 0; i < 28; i += 4) {
+            vctx.strokeStyle = `rgba(255, 30, 30, ${alpha * (1 - i / 28)})`;
+            vctx.strokeRect(i + 2, i + 2, VIEW_W - i * 2 - 4, VIEW_H - i * 2 - 4);
+        }
+        vctx.restore();
     }
 
     initListeners() {
-        document.addEventListener("keydown", (e) => { state[e.code] = true; });
-        document.addEventListener("keyup", (e) => { state[e.code] = false; });
+        document.addEventListener("keydown", (e) => {
+            state[e.code] = true;
+            if (e.repeat || this.state !== "playing") return;
+
+            if (e.code === "KeyE") this.interact();
+            else if (e.code === "Escape") this.closeChest();
+            else if (e.code === "Space") {
+                e.preventDefault();
+                this.useSelectedItem();
+            } else if (e.code.startsWith("Digit")) this.quickSwap(Number(e.code.slice(5)) - 1);
+        });
+        document.addEventListener("keyup", (e) => {
+            state[e.code] = false;
+        });
+
+        window.addEventListener("mousemove", (e) => this.updateMouse(e));
+        canvas.addEventListener("mousedown", (e) => {
+            this.updateMouse(e);
+            if (e.button === 0) this.startDrag();
+        });
+        window.addEventListener("mouseup", (e) => {
+            this.updateMouse(e);
+            if (e.button === 0) this.endDrag();
+        });
+    }
+
+    // Convert mouse pos to view pos
+    updateMouse(e) {
+        const r = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - r.left) * VIEW_W) / canvas.clientWidth;
+        mouse.y = ((e.clientY - r.top) * VIEW_H) / canvas.clientHeight;
+    }
+
+    // which list & index is slot in (chest/hotbar)
+    slotAt(x, y) {
+        if (!this.openedChest) return null;
+        const isInside = (rect) =>
+            x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
+
+        const chestIndex = this.chestPanel.slotRects(this.openedChest).findIndex(isInside);
+        if (chestIndex !== -1) return { list: this.openedChest.slots, index: chestIndex };
+
+        const slots = this.player.inventory.slots;
+        const hotbarIndex = slots.findIndex((_, i) => isInside(this.hotbar.slotRect(i)));
+        if (hotbarIndex !== -1) return { list: slots, index: hotbarIndex };
+
+        return null;
+    }
+
+    useSelectedItem() {
+        const inv = this.player.inventory;
+        if (inv.selected === null) return;
+        const id = inv.slots[inv.selected];
+        if (!id) return;
+
+        const item = ITEMS[id];
+        if (item.heal) this.player.heal(item.heal);
+        if (item.fuel) this.player.fuel(item.fuel);
+        if (item.regen) {
+            this.regens.push({
+                perSecond: item.regen.total / item.regen.seconds,
+                timeLeft: item.regen.seconds,
+            });
+        }
+
+        inv.remove(inv.selected);
+    }
+
+    // heal over time, currently onlt wine
+    updateRegens(dt) {
+        for (const r of this.regens) {
+            this.player.heal(r.perSecond * Math.min(dt, r.timeLeft));
+            r.timeLeft -= dt;
+        }
+        this.regens = this.regens.filter((r) => r.timeLeft > 0);
+    }
+
+    swapSlots(a, b) {
+        const temp = a.list[a.index];
+        a.list[a.index] = b.list[b.index];
+        b.list[b.index] = temp;
+    }
+
+    toggleChest() {
+        if (this.openedChest) this.closeChest();
+        else if (this.nearChest) this.openedChest = this.nearChest;
+    }
+
+    closeChest() {
+        if (!this.openedChest) return;
+        if (this.openedChest.slots.every((s) => s === null)) this.openedChest.active = false;
+        this.openedChest = null;
+        this.drag = null;
+    }
+
+    // minecraft swap mechanic
+    quickSwap(i) {
+        const slots = this.player.inventory.slots;
+        if (!this.openedChest || i < 0 || i >= slots.length) return;
+        const hover = this.slotAt(mouse.x, mouse.y);
+        if (!hover || hover.list !== this.openedChest.slots) return;
+        this.swapSlots(hover, { list: slots, index: i });
+    }
+
+    startDrag() {
+        if (this.state !== "playing") return;
+        const s = this.slotAt(mouse.x, mouse.y);
+        if (s && s.list[s.index]) this.drag = s;
+    }
+
+    endDrag() {
+        if (!this.drag) return;
+        const target = this.slotAt(mouse.x, mouse.y);
+        if (target) this.swapSlots(this.drag, target);
+        this.drag = null;
+    }
+
+    updateChestProximity() {
+        this.nearChest = null;
+        let best = CHESTS.openRange;
+        for (const l of this.loot) {
+            if (!(l instanceof Loot) || !l.active) continue;
+            const d = Math.hypot(
+                l.coordinate.x - this.player.coordinate.x,
+                l.coordinate.y - this.player.coordinate.y,
+            );
+            if (d <= best) {
+                best = d;
+                this.nearChest = l;
+            }
+        }
+
+        const open = this.openedChest;
+        if (open && (!open.active || !this.chestInRange(open, CHESTS.openRange))) this.closeChest();
+    }
+
+    // e key above general or chest, general first
+    drawPrompt() {
+        if (this.state !== "playing") return;
+
+        if (this.nearGeneral) {
+            this.drawKeyPrompt(this.rescue.target.coordinate);
+        } else if (this.nearChest && this.nearChest !== this.openedChest) {
+            this.drawKeyPrompt(this.nearChest.coordinate);
+        }
+    }
+
+    drawKeyPrompt(coordinate) {
+        const p = this.player.coordinate;
+        const x = Math.round(coordinate.x - p.x + VIEW_W / 2) - 5;
+        const y = Math.round(coordinate.y - p.y + VIEW_H / 2) - 30;
+
+        vctx.save();
+        vctx.fillStyle = "#000";
+        vctx.fillRect(x - 1, y - 1, 12, 12);
+        vctx.fillStyle = "#fff";
+        vctx.fillRect(x, y, 10, 10);
+        vctx.fillStyle = "#000";
+        vctx.font = "8px monospace";
+        vctx.textAlign = "center";
+        vctx.textBaseline = "middle";
+        vctx.fillText("E", x + 5, y + 6);
+        vctx.restore();
+    }
+
+    drawDraggedItem() {
+        if (!this.drag) return;
+        const id = this.drag.list[this.drag.index];
+        if (!id) return;
+        vctx.drawImage(ITEMS[id].icon, Math.round(mouse.x) - 8, Math.round(mouse.y) - 8);
     }
 
     gameloop(now) {
@@ -221,17 +574,15 @@ class Game {
 
         if (this.state === "playing") {
             this.checkCollision();
-            this.objects = this.objects.filter(o => o.active);
+            this.objects = this.objects.filter((o) => o.active);
             for (const o of this.objects) o.update(dt);
-            this.loot = this.loot.filter(l => l.active);
+            this.loot = this.loot.filter((l) => l.active);
             this.updateChests(dt);
+            this.updateHunted(dt);
             this.updateRescue(dt);
+            this.updateChestProximity();
+            this.updateRegens(dt);
         }
-
-
-
-        vctx.fillStyle = vctx.createPattern(this.sprite, "repeat");
-        vctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
         const p = this.player.coordinate;
         const cx = Math.round(p.x);
@@ -252,43 +603,39 @@ class Game {
         }
 
         if (this.rescue.target) this.rescue.target.draw(vctx);
+        if (this.rescue.french) this.rescue.french.draw(vctx);
         for (const o of this.objects) o.draw(vctx);
-
 
         vctx.restore();
         this.drawVisionBubble();
+        this.drawHuntedEdge();
         this.drawTargetHint();
+        this.drawPrompt();
         this.ui.draw(vctx);
+        this.drawDraggedItem();
 
-
-        if (this.state === "lost") this.drawLostMenu(vctx);
+        if (this.state === "lost") this.drawEndMenu(vctx, "Lost");
+        if (this.state === "won") this.drawEndMenu(vctx, "Won");
 
         ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
 
         requestAnimationFrame((t) => this.gameloop(t));
     }
 
-    drawLostMenu(ctx) {
+    drawEndMenu(ctx, text) {
         ctx.fillStyle = "rgb(0 0 0 / 0.42)";
         ctx.fillRect(0, 0, VIEW_W, VIEW_H);
         ctx.font = "40px monospace";
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
-        ctx.fillText("Lost", VIEW_W / 2, VIEW_H / 2);
+        ctx.fillText(text, VIEW_W / 2, VIEW_H / 2);
     }
 
     checkCollision() {
         for (const loot of this.loot) {
             if (!loot.active) continue;
 
-            if (loot instanceof Loot && this.player.collidesWith(loot)) {
-                if (!this.player.inventory.full) {
-                    if (this.player.inventory.add({ type: "chest", icon: Loot.frames[0] })) {
-                        loot.active = false;
-                    }
-                }
-                this.player.heal(Math.floor(Math.random() * 20) + 10);
-            } else if (loot instanceof Wood && this.player.collidesWith(loot)) {
+            if (loot instanceof Wood && this.player.collidesWith(loot)) {
                 this.player.fuel(15);
                 loot.active = false;
             }
@@ -313,14 +660,26 @@ class Game {
         const r = radius * (0.55 + 0.45 * light);
         this.player.visibleRadius = r;
 
-        // dark outside the bubble
-        const outer = (DEBUG ? 0.5 : 0.8) + 0.17 * (1 - light);
+        // fog outside the bubble, anchored to the world so it scrolls with the sea
+        const p = this.player.coordinate;
+        const px = Math.round(p.x);
+        const py = Math.round(p.y);
         vctx.save();
-        vctx.fillStyle = `rgba(0, 0, 0, ${outer})`;
         vctx.beginPath();
         vctx.rect(0, 0, VIEW_W, VIEW_H);
         vctx.arc(cx, cy, r, 0, Math.PI * 2);
-        vctx.fill("evenodd");
+        vctx.clip("evenodd");
+
+        if (DEBUG) vctx.globalAlpha = 0.5; // see through the fog when debugging
+        vctx.save();
+        vctx.translate(cx - px, cy - py);
+        vctx.fillStyle = this.fogPattern;
+        vctx.fillRect(px - cx, py - cy, VIEW_W, VIEW_H);
+        vctx.restore();
+
+        // fog gets darker when the lantern is off
+        vctx.fillStyle = `rgba(0, 0, 0, ${0.6 * (1 - light)})`;
+        vctx.fillRect(0, 0, VIEW_W, VIEW_H);
         vctx.restore();
 
         // inside bubble, dimmed if lantenr is off
@@ -334,7 +693,7 @@ class Game {
         // idk this is as "warm feeling" I could get
         if (light > 0.01) {
             const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            g.addColorStop(0, `rgba(255, 190, 80, ${0.30 * light})`);
+            g.addColorStop(0, `rgba(255, 190, 80, ${0.3 * light})`);
             g.addColorStop(1, "rgba(255, 190, 80, 0)");
             vctx.save();
             vctx.fillStyle = g;

@@ -1,15 +1,17 @@
-class Label extends UIElement {
+import { UIElement } from "./UIElement.js";
+
+export class Label extends UIElement {
     constructor(opts) {
         super(opts);
         this.getText = opts.getText;
         this.height = opts.height ?? 8;
     }
 
-    draw() {
+    draw(ctx) {
         const { x, y } = this.pos;
-        vctx.fillStyle = "#fff";
-        vctx.font = "8px monospace";
-        vctx.textBaseline = "top";
-        vctx.fillText(this.getText(), x, y);
+        ctx.fillStyle = "#fff";
+        ctx.font = "8px monospace";
+        ctx.textBaseline = "top";
+        ctx.fillText(this.getText(), x, y);
     }
 }

@@ -1,6 +1,8 @@
-class Loot extends GameObject {
-    static frames = ["sinking_chest.png", "chest_sinking_almost.png", "sunken-chest.png"].map(src =>
-        Object.assign(new Image(), { src })
+import { GameObject } from "./GameObject.js";
+
+export class Loot extends GameObject {
+    static frames = ["sinking_chest.png", "chest_sinking_almost.png", "sunken-chest.png"].map(
+        (src) => Object.assign(new Image(), { src: `assets/chest/${src}` }),
     );
     static sequence = [0, 1, 2, 1];
 
@@ -19,7 +21,8 @@ class Loot extends GameObject {
             img,
             Math.round(this.coordinate.x - 16),
             Math.round(this.coordinate.y - 16),
-            32, 32
+            32,
+            32,
         );
     }
 }
