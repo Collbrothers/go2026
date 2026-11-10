@@ -28,7 +28,10 @@ class Game {
         };
         this.waterPattern = "#2a6fb0";
 
-        this.spawnLoot(500)
+        this.spawnLoot(500);
+
+        this.chestTimer = 0;
+        for (let i = 0; i < CHESTS.max; i++) this.spawnChest();
 
         this.rescue = {
             phase: "generals", // generals || land
@@ -98,21 +101,49 @@ class Game {
     }
 
     spawnLoot(count) {
-        this.loot = [];
-        const half = WORLD_SIZE / 2;
         while (this.loot.length < count) {
             const x = (Math.random() - 0.5) * WORLD_SIZE;
             const y = (Math.random() - 0.5) * WORLD_SIZE;
 
             // continue if 150px close to the start
             if (Math.hypot(x, y) < 150) continue;
-            if (Math.random() < 0.5) {
-                this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
-            } else {
-                this.loot.push(new Wood({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
-            }
+            this.loot.push(new Wood({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
         }
     }
+
+
+    updateChests(dt) {
+        let count = 0;
+
+        for (const loot of this.loot) {
+            if(!(loot instanceof Loot) || !loot.active) continue;
+            if (Math.abs(loot.coordinate.x - this.player.coordinate.x) > (CHESTS.areaSize / 2) || Math.abs(loot.coordinate.y - this.player.coordinate.y) > (CHESTS.areaSize / 2)) {
+                loot.active = false; // despawn loot if its outside the area of chest spawns
+            } else {
+                count++;
+            }
+
+        }
+
+        this.chestTimer -= dt;
+        if (count < CHESTS.maxPerArea && this.chestTimer <= 0) {
+            this.spawnChest();
+            this.chestTimer = CHESTS.spawnInterval;
+        }
+    }
+
+
+    spawnChest() {
+        for (let i = 0; i < 20; i++) {
+            const x = this.player.coordinate.x + (Math.random() * 2 - 1) * (CHESTS.areaSize / 2);
+            const y = this.player.coordinate.y + (Math.random() * 2 - 1) * (CHESTS.areaSize / 2);
+            if (Math.hypot(x - this.player.coordinate.x, y - this.player.coordinate.y) < (this.player.baseRadius + CHESTS.safeMargin)) continue;
+            this.loot.push(new Loot({ coordinate: new Coordinate(x, y), width: 16, height: 16 }));
+            return true;
+        }
+        return false;
+    }
+
 
     randomCoordinateFromCoordinate(coordinate, minDist, maxDist) {
         const limit = WORLD_SIZE / 2 - 100; // Limits coordinate from world border by 100 px
@@ -193,6 +224,7 @@ class Game {
             this.objects = this.objects.filter(o => o.active);
             for (const o of this.objects) o.update(dt);
             this.loot = this.loot.filter(l => l.active);
+            this.updateChests(dt);
             this.updateRescue(dt);
         }
 

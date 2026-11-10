@@ -24,11 +24,18 @@ const GENERALS = [
 const RESCUE = {
     minDist: 250,
     maxDist: 450,
-    bufferTime: 10,
+    bufferTime: 30,
     hintVisibilitySeconds: 3,
     landMin: 1000,
     landMax: 1500,
     landRadius: 150
+}
+
+const CHESTS = {
+    areaSize: 1200,
+    maxPerArea: 6,
+    spawnInterval: 1.5,
+    safeMargin: 32 // outside the light circle
 }
 
 canvas.width = VIEW_W * SCALE;
