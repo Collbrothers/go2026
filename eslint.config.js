@@ -11,6 +11,8 @@ export default [
                 Image: "readonly",
                 performance: "readonly",
                 requestAnimationFrame: "readonly",
+                AudioContext: "readonly",
+                fetch: "readonly",
             },
         },
         rules: {

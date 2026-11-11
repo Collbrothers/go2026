@@ -1,5 +1,6 @@
 import { DynamicObject } from "./DynamicObject.js";
-import { DEBUG } from "./config.js";
+import { DEBUG, AUDIO } from "./config.js";
+import { Speaker, VOICES } from "./audio.js";
 
 export class Enemy extends DynamicObject {
     constructor(opts = {}) {
@@ -28,6 +29,14 @@ export class Enemy extends DynamicObject {
         this.loseTimer = 0;
         this.flash = 0;
 
+        this.voice = new Speaker({
+            voices: VOICES.enemy,
+            getPos: () => this.coordinate,
+            range: AUDIO.enemyRange,
+        });
+        this.firstShot = true; // TSIF only on first shot
+        this.postFireTimer = 0;
+
         this.sprite = Object.assign(new Image(), { src: "assets/boat/jollyboat.png" });
     }
 
@@ -43,6 +52,8 @@ export class Enemy extends DynamicObject {
             if (inCircle) {
                 this.state = "hunting";
                 this.cooldown = 0;
+                this.firstShot = true;
+                this.voice.say("player_discovered", { interrupt: true });
             } else {
                 this.search(dt);
                 return;
@@ -57,7 +68,17 @@ export class Enemy extends DynamicObject {
                 t.health -= this.damage;
                 this.cooldown = this.fireInterval;
                 this.flash = 0.1;
+
+                this.voice.say(this.firstShot ? "firing_first" : "firing");
+                this.firstShot = false;
+                if (Math.random() < AUDIO.postFiringChance)
+                    this.postFireTimer = AUDIO.postFiringDelay;
             }
+        }
+
+        if (this.postFireTimer > 0) {
+            this.postFireTimer -= dt;
+            if (this.postFireTimer <= 0) this.voice.say("post_firing");
         }
 
         this.hunt(dt);
@@ -65,7 +86,10 @@ export class Enemy extends DynamicObject {
         // Escape sequence
         if (!inCircle && !t.lanternOn) {
             this.loseTimer += dt;
-            if (this.loseTimer >= this.loseTime) this.active = false;
+            if (this.loseTimer >= this.loseTime) {
+                this.active = false;
+                this.voice.say("player_lost", { interrupt: true });
+            }
         } else {
             this.loseTimer = 0;
         }
@@ -78,6 +102,8 @@ export class Enemy extends DynamicObject {
                 this.searchTime = 0;
                 this.aim = null;
                 this.lastKnown = null;
+                this.postFireTimer = 0;
+                this.voice.say("player_lost", { interrupt: true });
             }
         } else {
             this.outTimer = 0;

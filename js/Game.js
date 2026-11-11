@@ -14,7 +14,16 @@ import { Label } from "./ui/Label.js";
 import { Hotbar } from "./ui/Hotbar.js";
 import { ChestPanel } from "./ui/ChestPanel.js";
 import { Compass } from "./ui/Compass.js";
+import { Icon } from "./ui/Icon.js";
 import { FrenchShip } from "./FrenchShip.js";
+import { unlockAudio, updateAudio } from "./audio.js";
+
+const flameOn = Object.assign(new Image(), { src: "assets/ui/flame-on.png" });
+const flameOff = Object.assign(new Image(), { src: "assets/ui/flame-off.png" });
+const silhouette = Object.assign(new Image(), { src: "assets/ui/GeneralSilhuett.png" });
+const generalPortraits = GENERALS.map((g) =>
+    Object.assign(new Image(), { src: `assets/generals/${g.sprite}.png` }),
+);
 
 export class Game {
     constructor() {
@@ -97,14 +106,12 @@ export class Game {
                     anchor: "topright",
                     x: 8,
                     y: 8,
-                    // dry-wood.png is 32x10, drawn at 2x so pixels stay crisp
-                    width: 64,
-                    height: 20,
+                    width: 96,
+                    height: 30,
                     background: Object.assign(new Image(), {
                         src: "assets/ui/dry-wood.png",
                     }),
-                    // wood area is 4/2/2/4 at 2x, plus 2px margin so plank shows around the fill
-                    inset: { left: 6, top: 4, right: 4, bottom: 6 },
+                    inset: { left: 9, top: 6, right: 6, bottom: 9 },
                     getValue: () => this.player.health,
                     color: "#078723",
                     max: 100,
@@ -114,7 +121,7 @@ export class Game {
                 new Label({
                     anchor: "topright",
                     x: 8,
-                    y: 56,
+                    y: 80,
                     width: 100,
                     getText: () =>
                         `H${Math.floor(this.player.health)}, G${Math.floor(this.player.gas)}`,
@@ -125,7 +132,7 @@ export class Game {
                 new Label({
                     anchor: "topright",
                     x: 8,
-                    y: 80,
+                    y: 104,
                     width: 100,
                     getText: () =>
                         `${Math.round(this.player.coordinate.x)}, ${Math.round(this.player.coordinate.y)}`,
@@ -133,12 +140,22 @@ export class Game {
                 }),
             )
             .add(
-                new Bar({
+                new Icon({
                     anchor: "topleft",
                     x: 8,
+                    y: 5,
+                    width: 16,
+                    height: 16,
+                    getImage: () => (this.player.lanternOn ? flameOn : flameOff),
+                }),
+            )
+            .add(
+                new Bar({
+                    anchor: "topleft",
+                    x: 28,
                     y: 8,
-                    width: 100,
-                    height: 8,
+                    width: 130,
+                    height: 10,
                     getValue: () => this.player.gas,
                     color: "#E37C07",
                     max: 100,
@@ -149,7 +166,6 @@ export class Game {
                     anchor: "bottomright",
                     x: 8,
                     y: 8,
-                    // compass pngs are 32x32, drawn at 2x like the wood bar
                     width: 64,
                     height: 64,
                     isVisible: () => this.rescue.index >= RESCUE.compassAfter,
@@ -158,6 +174,19 @@ export class Game {
             )
             .add(this.hotbar)
             .add(this.chestPanel);
+
+        GENERALS.forEach((_, i) => {
+            this.ui.add(
+                new Icon({
+                    anchor: "topright",
+                    x: 8 + (GENERALS.length - 1 - i) * 32,
+                    y: 40,
+                    width: 32,
+                    height: 32,
+                    getImage: () => (this.rescue.index > i ? generalPortraits[i] : silhouette),
+                }),
+            );
+        });
         this.last = 0;
     }
 
@@ -260,7 +289,7 @@ export class Game {
         const limit = WORLD_SIZE / 2 - 100; // Limits coordinate from world border by 100 px
         let x, y;
 
-        // player cant leave the world anymore (see Player.update) so this always finds a spot
+        // player cant leave the world so this always finds a coord
         for (;;) {
             const angle = Math.random() * Math.PI * 2;
             const distance = minDist + Math.random() * (maxDist - minDist);
@@ -281,9 +310,10 @@ export class Game {
 
         this.rescue.target = new General({
             coordinate: pos,
-            width: 16,
-            height: 16,
+            width: 32,
+            height: 32,
             name: GENERALS[this.rescue.index].name,
+            sprite: GENERALS[this.rescue.index].sprite,
         });
 
         this.rescue.timeLeft = dist / this.player.maxSpeed + RESCUE.bufferTime;
@@ -324,12 +354,14 @@ export class Game {
         this.rescue.timeLeft -= dt;
         if (this.rescue.timeLeft <= 0) this.state = "lost";
 
+        this.rescue.target.update(dt, this.rescue.timeLeft);
         const t = this.rescue.target.coordinate;
         const p = this.player.coordinate;
         this.nearGeneral = Math.hypot(t.x - p.x, t.y - p.y) <= RESCUE.pickupRange;
     }
 
     rescueGeneral() {
+        this.rescue.target.voice.stop();
         this.rescue.index++;
         this.nearGeneral = false;
 
@@ -392,6 +424,7 @@ export class Game {
 
     initListeners() {
         document.addEventListener("keydown", (e) => {
+            unlockAudio();
             state[e.code] = true;
             if (e.repeat || this.state !== "playing") return;
 
@@ -408,6 +441,7 @@ export class Game {
 
         window.addEventListener("mousemove", (e) => this.updateMouse(e));
         canvas.addEventListener("mousedown", (e) => {
+            unlockAudio();
             this.updateMouse(e);
             if (e.button === 0) this.startDrag();
         });
@@ -549,7 +583,7 @@ export class Game {
         vctx.fillStyle = "#fff";
         vctx.fillRect(x, y, 10, 10);
         vctx.fillStyle = "#000";
-        vctx.font = "8px monospace";
+        vctx.font = "12px monospace";
         vctx.textAlign = "center";
         vctx.textBaseline = "middle";
         vctx.fillText("E", x + 5, y + 6);
@@ -583,6 +617,7 @@ export class Game {
             this.updateChestProximity();
             this.updateRegens(dt);
         }
+        updateAudio(this.player.coordinate);
 
         const p = this.player.coordinate;
         const cx = Math.round(p.x);
