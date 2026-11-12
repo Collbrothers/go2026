@@ -18,6 +18,7 @@ import { Icon } from "./ui/Icon.js";
 import { FrenchShip } from "./FrenchShip.js";
 import { unlockAudio, updateAudio } from "./audio.js";
 import { Intro } from "./Intro.js";
+import { Menu } from "./Menu.js";
 
 const flameOn = Object.assign(new Image(), { src: "assets/ui/flame-on.png" });
 const flameOff = Object.assign(new Image(), { src: "assets/ui/flame-off.png" });
@@ -47,7 +48,8 @@ export class Game {
                 acceleration: 60,
             }),
         ];
-        this.state = "intro"; // intro || playing || lost || won
+        this.state = "menu"; // menu || intro || playing || lost || won
+        this.menu = new Menu();
         this.intro = new Intro();
         this.loot = [];
         this.sprite = Object.assign(new Image(), { src: "assets/sea/sea.png" });
@@ -428,13 +430,20 @@ export class Game {
         document.addEventListener("keydown", (e) => {
             unlockAudio();
             state[e.code] = true;
+            if (this.state === "menu") {
+                if (!e.repeat) {
+                    if (e.code === "Space") e.preventDefault();
+                    if (this.menu.key(e.code)) this.state = "intro";
+                }
+                return;
+            }
             if (this.state === "intro") {
                 if (!e.repeat) this.advanceIntro();
                 return;
             }
             if (e.repeat || this.state !== "playing") return;
 
-            if (e.code === "KeyE") this.interact();
+            if (e.code === "KeyE" || e.code === "KeyM") this.interact();
             else if (e.code === "Escape") this.closeChest();
             else if (e.code === "Space") {
                 e.preventDefault();
@@ -449,7 +458,9 @@ export class Game {
         canvas.addEventListener("mousedown", (e) => {
             unlockAudio();
             this.updateMouse(e);
-            if (this.state === "intro") this.advanceIntro();
+            if (this.state === "menu") {
+                if (e.button === 0 && this.menu.click(mouse.x, mouse.y)) this.state = "intro";
+            } else if (this.state === "intro") this.advanceIntro();
             else if (e.button === 0) this.startDrag();
         });
         window.addEventListener("mouseup", (e) => {
@@ -612,6 +623,13 @@ export class Game {
         if (!this.last) this.last = now;
         const dt = Math.min((now - this.last) / 1000, 0.1);
         this.last = now;
+
+        if (this.state === "menu") {
+            this.menu.draw(vctx, mouse);
+            ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame((t) => this.gameloop(t));
+            return;
+        }
 
         if (this.state === "intro") {
             this.intro.update(dt);

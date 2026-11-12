@@ -43,6 +43,24 @@ export const AUDIO = {
     postFiringChance: 0.5,
 };
 
+export const CREDITS = [
+    { name: "Aron Kylebäck", role: "Programmer" },
+    { name: "Robin Karlsson", role: "Programmer" },
+    { name: "Oliwer Sandberg", role: "Sound Designer" },
+    { name: "Mátyás Dioszegi", role: "Game Designer" },
+    { name: "Léon Maars", role: "Graphic Designer" },
+    { name: "Hala Srhan", role: "Graphic Designer" },
+    { name: "Anton Grundvall", role: "Voice Actor" },
+    { name: "juanlopz08", role: "Rowing Sound" },
+    { name: "klankbeeld", role: "Wave Sound" },
+    { name: "DRAGON-STUDIO", role: "Chest Sound" },
+    { name: "Alice_soundz", role: "Fuel Sound" },
+    { name: "freesound_community", role: "Shot, Whispers and Low Fuel Sound" },
+    { name: "A_a2005", role: "Consumable Sound" },
+    { name: "HugoBozz", role: "Breathing Sound" },
+    { name: "Universfield", role: "Canon and Damage Sound" },
+];
+
 export const INTRO = {
     wpm: 238, // average adult silent reading speed according to Google AI
     minHold: 2, // seconds so short text dont flash by
