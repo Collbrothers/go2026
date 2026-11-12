@@ -56,18 +56,21 @@ export class ChestPanel extends UIElement {
                 
                 const ix = 0;
                 const iid = hover.list[hover.index];
+                const item = ITEMS[iid];
+                if (item) {
                 ctx.font = "bold 12px monospace ";
                 ctx.textAlign = "center";
 
                 ctx.strokeStyle = "black";
                 ctx.lineWidth = 3;
-                ctx.strokeText(ITEMS[iid].name, r.x - ix, r.y - 23);
-                ctx.strokeText(ITEMS[iid].stat, r.x - (ix - 5), r.y - 10);
+                ctx.strokeText(item.name, r.x - ix, r.y - 23);
+                ctx.strokeText(item.stat, r.x - (ix - 5), r.y - 10);
 
                 ctx.fillStyle = "white"
-                
-                ctx.fillText(ITEMS[iid].name, r.x - ix, r.y - 23);
-                ctx.fillText(ITEMS[iid].stat, r.x - (ix - 5), r.y - 10);
+
+                ctx.fillText(item.name, r.x - ix, r.y - 23);
+                ctx.fillText(item.stat, r.x - (ix - 5), r.y - 10);
+                }
             }
 
             const id = chest.slots[i];
