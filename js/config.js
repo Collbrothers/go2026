@@ -43,6 +43,16 @@ export const AUDIO = {
     postFiringChance: 0.5,
 };
 
+export const INTRO = {
+    wpm: 238, // average adult silent reading speed according to Google AI
+    minHold: 2, // seconds so short text dont flash by
+    startDelay: 1, // black screen before the first paragraph
+    fontSize: 12, // max, shrinks if text doesnt fit
+    maxWidth: 520,
+    margin: 16,
+    promptSpace: 24, // room at the bottom for "press any key"
+};
+
 export const CHESTS = {
     areaSize: 1200,
     maxPerArea: 6,
