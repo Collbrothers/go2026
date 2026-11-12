@@ -56,7 +56,7 @@ export class ChestPanel extends UIElement {
                 
                 const ix = 0;
                 const iid = hover.list[hover.index];
-                ctx.font = "bold 12px Arial ";
+                ctx.font = "bold 12px monospace ";
                 ctx.textAlign = "center";
 
                 ctx.strokeStyle = "black";
