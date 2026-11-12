@@ -2,6 +2,7 @@ import { VIEW_W, VIEW_H, CREDITS } from "./config.js";
 
 const playImg = Object.assign(new Image(), { src: "assets/ui/play-button.png" });
 const creditsImg = Object.assign(new Image(), { src: "assets/ui/credits-button.png" });
+const titleImg = Object.assign(new Image(), { src: "assets/ui/screentitle.png" });
 
 const textColor = "rgb(232, 224, 208)";
 const greyColor = "rgb(160, 160, 160)";
@@ -56,6 +57,8 @@ export class Menu {
     }
 
     drawButtons(ctx, mouse) {
+        ctx.drawImage(titleImg, (VIEW_W - 256) / 2, 48);
+
         for (const b of [this.play, this.credits]) {
             // brighted and moves up
             const hover = this.isOver(b, mouse.x, mouse.y);
