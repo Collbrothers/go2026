@@ -19,8 +19,8 @@ export const GENERALS = [
 ];
 
 export const RESCUE = {
-    minDist: 250,
-    maxDist: 450,
+    minDist: 1000,
+    maxDist: 1500,
     bufferTime: 30,
     hintVisibilitySeconds: 3,
     frenchMin: 1000,
