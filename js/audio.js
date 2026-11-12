@@ -24,6 +24,7 @@ export const VOICES = {
             takes("en/player_lost", "ShesGoneDark", 5),
             takes("en/player_lost", "WhereDidSheGo", 4),
         ],
+        rifle_fire:[takes("en/riflefire","ENRifle",3)],
     },
     general: {
         searching: [
@@ -100,6 +101,10 @@ export class Speaker {
 
         this.gain = ac.createGain();
         this.gain.connect(ac.destination);
+    }
+    //plays even if it interrups another sounds
+    shot(event){
+        this.play(event);
     }
 
     say(event, opts = {}) {
