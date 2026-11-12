@@ -57,8 +57,8 @@ export class ChestPanel extends UIElement {
                 const iid = hover.list[hover.index];
                 ctx.fillStyle = "white"
                 ctx.font = "12px arial ";
-                ctx.fillText(ITEMS[iid].name, r.x - 20, r.y - 33);
-                ctx.fillText(ITEMS[iid].stat, r.x - 15, r.y - 20);
+                ctx.fillText(ITEMS[iid].name, r.x - 20, r.y - 23);
+                ctx.fillText(ITEMS[iid].stat, r.x - 15, r.y - 10);
             }
 
             const id = chest.slots[i];
