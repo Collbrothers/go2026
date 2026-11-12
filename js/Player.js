@@ -57,9 +57,10 @@ export class Player extends DynamicObject {
         this.turning = 0; // -1 left, 0 none, 1 right
 
         document.addEventListener("keydown", (e) => {
-            if (e.code !== "KeyF" || e.repeat) return;
-            if (this.lanternOn) this.lanternOn = false;
-            else if (this.gas > 0) this.lanternOn = true;
+            if (e.code === "KeyF" || e.code === "KeyN") {
+                if (this.lanternOn) this.lanternOn = false;
+                else if (this.gas > 0) this.lanternOn = true;
+            }
         });
     }
 
