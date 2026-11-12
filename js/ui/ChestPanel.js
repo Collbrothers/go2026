@@ -51,8 +51,14 @@ export class ChestPanel extends UIElement {
         this.slotRects(chest).forEach((r, i) => {
             if (hover && hover.list === chest.slots && hover.index === i) {
                 ctx.strokeStyle = "#fff";
-                ctx.lineWidth = 1;
                 ctx.strokeRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
+                ctx.lineWidth = 1;
+
+                const iid = hover.list[hover.index];
+                ctx.fillStyle = "white"
+                ctx.font = "12px arial ";
+                ctx.fillText(ITEMS[iid].name, r.x - 20, r.y - 33);
+                ctx.fillText(ITEMS[iid].stat, r.x - 15, r.y - 20);
             }
 
             const id = chest.slots[i];

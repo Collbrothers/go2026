@@ -47,7 +47,7 @@ export class Player extends DynamicObject {
         this.turnRate = 2;
         this.lightLevel = 1;
         this.lanternDuration = 20;
-        this.darkDamage = 5;
+        this.darkDamage = 2;
         this.lanternOn = true;
         this.inventory = new Inventory(3);
 

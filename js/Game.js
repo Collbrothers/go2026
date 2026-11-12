@@ -391,8 +391,8 @@ export class Game {
         const angle = Math.atan2(t.y - p.y, t.x - p.x) + this.rescue.arcOffset;
 
         vctx.save();
-        vctx.strokeStyle = "#ffd866";
-        vctx.lineWidth = 3;
+        vctx.strokeStyle = "#05c926";
+        vctx.lineWidth = 4;
         vctx.beginPath();
         vctx.arc(
             VIEW_W / 2,
