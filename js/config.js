@@ -39,7 +39,7 @@ export const AUDIO = {
     generalCallInterval: [5, 9], // min max seconds between callouts
     drownTime: 15, // seconds until general switches to drownign voice lines
     drownCallInterval: [3.5, 5],
-    postFiringDelay: 1.2, // seconds after shot boat talks
+    postFiringDelay: 1, // seconds after shot boat talks
     postFiringChance: 0.5,
 };
 

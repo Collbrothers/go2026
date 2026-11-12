@@ -65,10 +65,12 @@ export class Enemy extends DynamicObject {
             this.lastKnown = { x: t.coordinate.x, y: t.coordinate.y };
             this.cooldown -= dt;
             if (this.cooldown <= 0) {
+                this.voice.shot(this.firstShot ? "rifle_fire":"rifle_fire");
                 t.health -= this.damage;
                 this.cooldown = this.fireInterval;
                 this.flash = 0.1;
 
+                
                 this.voice.say(this.firstShot ? "firing_first" : "firing");
                 this.firstShot = false;
                 if (Math.random() < AUDIO.postFiringChance)
