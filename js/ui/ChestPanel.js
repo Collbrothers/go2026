@@ -53,12 +53,21 @@ export class ChestPanel extends UIElement {
                 ctx.strokeStyle = "#fff";
                 ctx.strokeRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
                 ctx.lineWidth = 1;
-
+                
+                const ix = 0;
                 const iid = hover.list[hover.index];
+                ctx.font = "bold 12px Arial ";
+                ctx.textAlign = "center";
+
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 3;
+                ctx.strokeText(ITEMS[iid].name, r.x - ix, r.y - 23);
+                ctx.strokeText(ITEMS[iid].stat, r.x - (ix - 5), r.y - 10);
+
                 ctx.fillStyle = "white"
-                ctx.font = "12px arial ";
-                ctx.fillText(ITEMS[iid].name, r.x - 20, r.y - 23);
-                ctx.fillText(ITEMS[iid].stat, r.x - 15, r.y - 10);
+                
+                ctx.fillText(ITEMS[iid].name, r.x - ix, r.y - 23);
+                ctx.fillText(ITEMS[iid].stat, r.x - (ix - 5), r.y - 10);
             }
 
             const id = chest.slots[i];
