@@ -17,6 +17,7 @@ import { Compass } from "./ui/Compass.js";
 import { Icon } from "./ui/Icon.js";
 import { FrenchShip } from "./FrenchShip.js";
 import { unlockAudio, updateAudio } from "./audio.js";
+import { Intro } from "./Intro.js";
 
 const flameOn = Object.assign(new Image(), { src: "assets/ui/flame-on.png" });
 const flameOff = Object.assign(new Image(), { src: "assets/ui/flame-off.png" });
@@ -46,7 +47,8 @@ export class Game {
                 acceleration: 60,
             }),
         ];
-        this.state = "playing"; // playing || lost || won || intro (maybe).
+        this.state = "intro"; // intro || playing || lost || won
+        this.intro = new Intro();
         this.loot = [];
         this.sprite = Object.assign(new Image(), { src: "assets/sea/sea.png" });
 
@@ -426,6 +428,10 @@ export class Game {
         document.addEventListener("keydown", (e) => {
             unlockAudio();
             state[e.code] = true;
+            if (this.state === "intro") {
+                if (!e.repeat) this.advanceIntro();
+                return;
+            }
             if (e.repeat || this.state !== "playing") return;
 
             if (e.code === "KeyE") this.interact();
@@ -443,12 +449,17 @@ export class Game {
         canvas.addEventListener("mousedown", (e) => {
             unlockAudio();
             this.updateMouse(e);
-            if (e.button === 0) this.startDrag();
+            if (this.state === "intro") this.advanceIntro();
+            else if (e.button === 0) this.startDrag();
         });
         window.addEventListener("mouseup", (e) => {
             this.updateMouse(e);
             if (e.button === 0) this.endDrag();
         });
+    }
+
+    advanceIntro() {
+        if (this.intro.advance()) this.state = "playing";
     }
 
     // Convert mouse pos to view pos
@@ -601,6 +612,14 @@ export class Game {
         if (!this.last) this.last = now;
         const dt = Math.min((now - this.last) / 1000, 0.1);
         this.last = now;
+
+        if (this.state === "intro") {
+            this.intro.update(dt);
+            this.intro.draw(vctx);
+            ctx.drawImage(view, 0, 0, canvas.width, canvas.height);
+            requestAnimationFrame((t) => this.gameloop(t));
+            return;
+        }
 
         if (this.state === "playing" && this.player.health <= 0) {
             this.state = "lost";
